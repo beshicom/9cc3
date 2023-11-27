@@ -15,6 +15,10 @@
 
 
 
+char *	user_input;		// 処理するプログラムの文字列全体の先頭
+
+
+
 // トークンの種類 TokenKind										//TAG?JUMP_MARK
 typedef enum {
 
@@ -77,6 +81,36 @@ bool consume ( char op )
 
 
 
+// エラーを報告するための関数 error_at()						//TAG_JUMP_MARK
+//	printf()と同じ引数。
+void error_at( int nErrCode, int nSubCode, char * loc, char * fmt, ... )
+{
+
+	va_list		ap;
+	va_start( ap, fmt );
+
+	int	pos = loc - user_input;
+
+	// 1+2-a
+	//     ^ 文法が違います
+
+	fprintf( stderr, "%s\n", user_input );
+	fprintf( stderr, "%*s", pos, " " );	// pos個のスペース
+	fprintf( stderr, "^ " );
+
+	char	buf[ 100 ];
+	vsprintf( buf, fmt, ap );
+	strcat( buf, "\n" );
+
+	fputs( buf, stderr );
+
+	error ( nErrCode, nSubCode, buf );
+
+}
+//void error_at( int nErrCode, int nSubCode, char *p loc, char * fmt, ... )
+
+
+
 // expect()														//TAG_JUMP_MARK
 //	次のトークンtokenが期待している記号の時はトークンを１つ読み進める。
 //	でなければエラーを報告する。
@@ -84,7 +118,7 @@ void expect ( char op, int nErrCode )
 {
 
 	if(  ( token->kind != TK_RESERVED )||( token->str[0] != op )  )
-		error( nErrCode, 100, "'%c'ではありません。", op );
+		error_at( nErrCode, 100, token->str, "'%c'ではありません。", op );
 
 	token = token->next;	// 次のトークンへ
 
@@ -100,7 +134,7 @@ long expect_number ( int nErrCode )
 {
 
 	if( token->kind != TK_NUM )
-		error( nErrCode, 100, "数値ではありません。" );
+		error_at( nErrCode, 100, token->str, "数値ではありません。" );
 
 	long	val = token->val;
 	token = token->next;	// 次のトークンへ
@@ -204,7 +238,8 @@ Token * tokenize ( char * pStr, int nErrCode )
 			continue;
 		}
 
-		error( nErrCode, 100, "文法が違います。(%dバイト目)", p-pStr );
+		error_at( nErrCode, 100, p,
+								"文法が違います。(%dバイト目)", p-pStr );
 
 	}// while *p
 
@@ -225,12 +260,15 @@ Token * tokenize ( char * pStr, int nErrCode )
 int main ( int argc, char **argv )
 {
 
+	user_input = argv[1];
+
 	if( argc !=2 ){
 		fprintf( stderr, "引数の個数が正しくありません。\n" );
 		return 100;
 	}
 
 	// 引数からトークンのリストを作る
+	user_input = argv[1];
 	Token *	mToken = token = tokenize( argv[1], 1000 );
 
 	printf( "\n\n\n" );
