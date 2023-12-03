@@ -130,15 +130,43 @@ Node * primary ()
 
 
 
+// 単項の + と - をパースする。 unary()			//TAG_JUMP_MARK
+//	unary = ( "+" | "-" )? primary
+//
+Node * unary ()
+{
+
+	nLastError = 0;
+
+	// +x -> x
+	if( consume('+') )	return primary();
+
+	// -x -> 0-x
+	if( consume('-') ){
+		Node *	node = new_node( ND_SUB, new_node_num(0), primary() );
+		if( node == NULL ){
+			nLastError = 2;
+			return primary();
+		}
+		return node;
+	}
+
+	return primary();
+
+}
+//Node * unary ()
+
+
+
 // * や / をパースする mul()						//TAG_JUMP_MARK
-//	mul = primary ( "*" primary | "/" primary )*
+//	mul = unary ( "*" unary | "/" unary )*
 //	* と / は左結合の演算子。lhsが深くなる。
 Node * mul ()
 {
 
 	nLastError = 0;
 
-	Node *	node = primary();
+	Node *	node = unary();
 	if( node == NULL ){
 		nLastError = 1;
 		return NULL;
@@ -149,7 +177,7 @@ Node * mul ()
 
 		if( consume( '*' ) ){
 			mnd = node;
-			node = new_node( ND_MUL, node, primary() );
+			node = new_node( ND_MUL, node, unary() );
 			if( node == NULL ){
 				nLastError = mnd->nErr = 2;
 				return mnd;
@@ -159,7 +187,7 @@ Node * mul ()
 
 		if( consume( '/' ) ){
 			mnd = node;
-			node = new_node( ND_DIV, node, primary() );
+			node = new_node( ND_DIV, node, unary() );
 			if( node == NULL ){
 				nLastError = mnd->nErr = 2;
 				return mnd;
