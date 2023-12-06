@@ -104,14 +104,14 @@ Node * primary ()
 	Node *	node;
 
 	// 次のトークンが '(' なら、'(' expr ')' でなければならない。
-	if( consume( '(' ) ){
+	if( consume( "(" ) ){
 
 		node = expr();
 		if( node == NULL ){
 			//nLastError = 2;
 			return NULL;
 		}
-		nLastError = expect( ')', 1000 );
+		nLastError = expect( ")", 1000 );
 		return node;
 
 	}
@@ -139,11 +139,12 @@ Node * unary ()
 	nLastError = 0;
 
 	// +x -> x
-	if( consume('+') )	return primary();
+	if( consume("+") )	return primary();
 
 	// -x -> 0-x
-	if( consume('-') ){
-		Node *	node = new_node( ND_SUB, new_node_num(0), primary() );
+	if( consume("-") ){
+		Node *	node =
+				new_node( ND_SUB, new_node_num(0), primary() );
 		if( node == NULL ){
 			nLastError = 2;
 			return primary();
@@ -175,7 +176,7 @@ Node * mul ()
 
 	for(;;){
 
-		if( consume( '*' ) ){
+		if( consume( "*" ) ){
 			mnd = node;
 			node = new_node( ND_MUL, node, unary() );
 			if( node == NULL ){
@@ -185,7 +186,7 @@ Node * mul ()
 			continue;
 		}
 
-		if( consume( '/' ) ){
+		if( consume( "/" ) ){
 			mnd = node;
 			node = new_node( ND_DIV, node, unary() );
 			if( node == NULL ){
@@ -206,10 +207,10 @@ Node * mul ()
 
 
 
-// + や - をパースする expr()					//TAG_JUMP_MARK
-//	expr = mul ( "+" mul | "-" mul )*
+// + や - をパースする add()					//TAG_JUMP_MARK
+//	add = mul ( "+" mul | "-" mul )*
 //	+ と - は左結合の演算子。lhsが深くなる。
-Node * expr ()
+Node * add ()
 {
 
 	nLastError = 0;
@@ -223,7 +224,7 @@ Node * expr ()
 
 	for(;;){
 
-		if( consume( '+' ) ){
+		if( consume( "+" ) ){
 			mnd = node;
 			node = new_node( ND_ADD, node, mul() );
 			if( node == NULL ){
@@ -233,7 +234,7 @@ Node * expr ()
 			continue;
 		}
 
-		if( consume( '-' ) ){
+		if( consume( "-" ) ){
 			mnd = node;
 			node = new_node( ND_SUB, node, mul() );
 			if( node == NULL ){
@@ -248,6 +249,135 @@ Node * expr ()
 	}// for(;;)
 
 	return node;
+
+}
+//Node * add ()
+
+
+
+// < と <= と > と >= をパースする relational()	//TAG_JUMP_MARK
+//	relational =
+//			add ( "<" add | "<=" add | ">" add | ">=" add )*
+//	< と <= と > と >= は左結合の演算子。lhsが深くなる。
+Node * relational()
+{
+
+	nLastError = 0;
+
+	Node *	node = add();
+	if( node == NULL ){
+		nLastError = 1;
+		return NULL;
+	}
+	Node *	mnd = node;
+
+	for(;;){
+
+		if( consume( "<" ) ){
+			mnd = node;
+			node = new_node( ND_SML, node, add() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		if( consume( "<=" ) ){
+			mnd = node;
+			node = new_node( ND_SME, node, add() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		if( consume( ">" ) ){
+			mnd = node;
+			node = new_node( ND_BIG, node, add() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		if( consume( ">=" ) ){
+			mnd = node;
+			node = new_node( ND_BGE, node, add() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		break;
+
+	}// for(;;)
+
+	return node;
+
+}
+//Node * relational()
+
+
+
+// == と != をパースする equality()				//TAG_JUMP_MARK
+//	equality =
+//			relational ( "==" relational | "!=" relational )*
+//	== と != は左結合の演算子。lhsが深くなる。
+Node * equality ()
+{
+
+	nLastError = 0;
+
+	Node *	node = relational();
+	if( node == NULL ){
+		nLastError = 1;
+		return NULL;
+	}
+	Node *	mnd = node;
+
+	for(;;){
+
+		if( consume( "==" ) ){
+			mnd = node;
+			node = new_node( ND_EQU, node, relational() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		if( consume( "!=" ) ){
+			mnd = node;
+			node = new_node( ND_NEQ, node, relational() );
+			if( node == NULL ){
+				nLastError = mnd->nErr = 2;
+				return mnd;
+			}
+			continue;
+		}
+
+		break;
+
+	}// for(;;)
+
+	return node;
+
+}
+
+
+
+// expr()										//TAG_JUMP_MARK
+// ezpr = equality
+Node * expr ()
+{
+
+	return equality();
 
 }
 //Node * expr ()
@@ -283,6 +413,48 @@ int Calc ( Node * node )                        //TAG_JUMP_MARK
 	int		d = 0;
 
 	switch( node->kind ) {
+	case ND_EQU:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv == rv ) ? 1 : 0 ;
+		}
+	case ND_NEQ:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv != rv ) ? 1 : 0 ;
+		}
+	case ND_SML:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv < rv ) ? 1 : 0 ;
+		}
+	case ND_SME:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv <= rv ) ? 1 : 0 ;
+		}
+	case ND_BIG:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv > rv ) ? 1 : 0 ;
+		}
+	case ND_BGE:
+		{
+		int	lv = Calc( node->lhs );
+		if( node->rhs == NULL )	return lv;
+		int	rv = Calc( node->rhs );
+		return ( lv >= rv ) ? 1 : 0 ;
+		}
 	case ND_ADD:
 		{
 		int	lv = Calc( node->lhs );
@@ -314,7 +486,7 @@ int Calc ( Node * node )                        //TAG_JUMP_MARK
 	case ND_NUM:
 		return node->val;
 	default:
-		printf( "error\n" );
+		printf( "error Calc()\n" );
 		nLastError = 900;
 	}
 
@@ -337,6 +509,54 @@ int Print0 ( Node * node, int nDepth )		//TAG_JUMP_MARK
 	char *	ps = space;
 
 	switch( node->kind ) {
+	case ND_EQU:
+		Indent( nDepth );
+		printf( "EQU==(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
+	case ND_NEQ:
+		Indent( nDepth );
+		printf( "NEQ!=(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
+	case ND_SML:
+		Indent( nDepth );
+		printf( "SML<(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
+	case ND_SME:
+		Indent( nDepth );
+		printf( "SME<=(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
+	case ND_BIG:
+		Indent( nDepth );
+		printf( "BIG>(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
+	case ND_BGE:
+		Indent( nDepth );
+		printf( "BGE>=(%d)\n", node->nBlockID );
+		if( node->lhs != NULL )
+			Print0( node->lhs, nDepth+1 );
+		if( node->rhs != NULL )
+			Print0( node->rhs, nDepth+1 );
+		return 0;
 	case ND_ADD:
 		Indent( nDepth );
 		printf( "ADD(%d)\n", node->nBlockID );
@@ -377,7 +597,7 @@ int Print0 ( Node * node, int nDepth )		//TAG_JUMP_MARK
 		}
 		return 0;
 	default:
-		printf( "error\n" );
+		printf( "error Print0()\n" );
 	}
 
 	nLastError = 1;

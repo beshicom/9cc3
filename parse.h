@@ -22,12 +22,21 @@
 typedef enum
 {
 
-	ND_ADD,		// +
-	ND_SUB,		// -
-	ND_MUL,		// *
-	ND_DIV,		// /
 	ND_NUM,		// 整数
 
+	ND_ADD,		// +
+	ND_SUB,		// -
+
+	ND_MUL,		// *
+	ND_DIV,		// /
+
+	ND_SML,		// <
+	ND_SME,		// <=
+	ND_BIG,		// >
+	ND_BGE,		// >=
+
+	ND_EQU,		// ==
+	ND_NEQ,		// !=
 	ND_END		// (終端子)
 
 } NodeKind ;
@@ -65,6 +74,11 @@ int Parse ();
 // 構文木をプリントする Print()					//TAG_JUMP_MARK
 //	グローバル変数 NodeTop : 構文木
 int Print ();
+
+
+
+int Calc ( Node * node );                       //TAG_JUMP_MARK
+void delete_tree ( Node * pNode );				//TAG_JU<P_MARK
 
 
 

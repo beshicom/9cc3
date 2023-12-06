@@ -11,7 +11,7 @@
 
 
 
-// 構文木からアセンブラコードを生成する gen()					//TAG_JUMP_MARK
+// 構文木からアセンブラコードを生成する gen()		//TAG_JUMP_MARK
 //	機械的にスタックマシンとしての x86コードを生成。
 int gen ( Node * node, int nDepth )
 {
@@ -68,6 +68,56 @@ int gen ( Node * node, int nDepth )
 		printf( "    idiv    rdi\n" );
 			//rdx rax を128ビット整数とみなしてrdiで符号付き除算をして
 			//	商をrax、余りをrdxに入れる。
+		break;
+	case ND_SML:	// <
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    setl    al\n" );
+							// 直前のcmpが < の時にalに1をセット
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
+		break;
+	case ND_BIG:	// >  ->  ! <=
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    setle   al\n" );
+							// 直前のcmpが <= の時にalに1をセット
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
+		printf( "    xor     rax, 1\n" );
+		break;
+	case ND_SME:	// <=
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    setle   al\n" );
+							// 直前のcmpが <= の時にalに1をセット
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
+		break;
+	case ND_BGE:	// >=  ->  ! <
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    setl    al\n" );
+							// 直前のcmpが < の時にalに1をセット
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
+		printf( "    xor     rax, 1\n" );
+		break;
+	case ND_EQU:
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    sete    al\n" );
+							// 直前のcmpが等しい時にalに1をセット
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
+		break;
+	case ND_NEQ:
+		Indent0( nDepth );
+		printf( "    cmp     rax, rdi\n" );
+		printf( "    setne    al\n" );
+							// 直前のcmpが等しくない時にalに1
+		printf( "    movzb   rax, al\n" );
+							// 上位ビットをゼロに
 		break;
 	}// switch
 

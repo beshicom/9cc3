@@ -1,4 +1,5 @@
-CFLAGS=-std=c11 -g -static
+CFLAGS=-std=c11 -g -static -Wimplicit-function-declaration \
+											-Wformat-security
 
 9cc : 9cc.o object.o token.o parse.o gen.o
 	gcc 9cc.o object.o token.o parse.o gen.o -o 9cc

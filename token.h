@@ -29,6 +29,7 @@ extern char *	user_input;
 typedef enum {
 
 	TK_RESERVED,	// 記号
+	TK_RESERVED2,	// ２文字の記号 (トークナイズの時のみ使用)
 	TK_NUM,			// 整数
 	TK_EOF			// 入力の終わり
 
@@ -43,6 +44,7 @@ struct Token {
 	Token *		next;	// 次の入力トークン
 	int			val;	// kindがTK_NUMの時
 	char *		str;	// トークン文字列の先頭
+	int			len;	// トークンの長さ
 
 };
 
@@ -52,21 +54,24 @@ extern Token *	token;
 
 
 // consume()								//TAG_JUMP_MARK
-//	次のトークンtokenが期待している記号の時は真を返す。でなければ偽を返す。
+//	次のトークンtokenが期待している記号の時は真を返す。
+//										でなければ偽を返す。
 //	トークンを読み進める。
-bool consume ( char op );
+bool consume ( char * op );
 
 
 
 // expect()									//TAG_JUMP_MARK
-//	次のトークンtokenが期待している記号の時はトークンを１つ読み進める。
+//	次のトークンtokenが期待している記号の時は
+//								トークンを１つ読み進める。
 //	でなければエラーを報告する。
-int expect ( char op, int nErrCode );
+int expect ( char * op, int nErrCode );
 
 
 
 // expect_number()							//TAG_JUMP_MARK
-//	次のトークンtokenが数値の場合、トークンを１つ読み進めて、その数値を返す。
+//	次のトークンtokenが数値の場合、トークンを１つ読み進めて、
+//											その数値を返す。
 //	でなければエラーを報告する。
 int expect_number ( int nErrCode );
 
